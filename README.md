@@ -1,9 +1,11 @@
-# Server-Setup 
+# Server-Setup
 
 ## Operating System
+
 Debian
 
 ## Software to Install
+
 - ncdu
 - htop
 - git
@@ -12,4 +14,7 @@ Debian
 - nano
 - micro
 - restic
-- rsync 
+- rsync
+- fresh curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
+- fish
+- tmux
