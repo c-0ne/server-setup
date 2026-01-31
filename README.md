@@ -1,8 +1,18 @@
 # Server-Setup
 
-## Operating System
+## Description
 
-Debian
+https://github.com/c-0ne/server-setup/
+One script to setup a new server with essential tools and configurations.
+
+## Usage
+
+Run the following command in your terminal:
+
+```bash
+# direct fetch script and run it from https://github.com/c-0ne/server-setup/setupServer.sh
+sudo bash <(curl -s https://raw.githubusercontent.com/c-0ne/server-setup/main/setupServer.sh)
+```
 
 ## Software to Install
 
@@ -15,6 +25,11 @@ Debian
 - micro
 - restic
 - rsync
-- fresh curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
+- fresh
 - fish
 - tmux
+- wget
+
+## Configuration
+
+- set default shell to fish
