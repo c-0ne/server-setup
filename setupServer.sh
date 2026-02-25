@@ -4,9 +4,9 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-sudo apt update
-sudo apt install -y ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find
-sudo curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
+apt update
+apt install -y ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find cockpit cockpit-pcp cockpit-networkmanager cockpit-packagekit
+curl https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
 chsh -s /usr/bin/fish
 
 # ask to install docker
@@ -19,3 +19,5 @@ then
     rm get-docker.sh
 fi
 
+# enable cockpit service
+systemctl enable --now cockpit.socket
