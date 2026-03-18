@@ -6,6 +6,16 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+if command -v docker &> /dev/null; then
+  echo "Docker is already installed."
+  DO_INSTALL_DOCKER="n"
+else
+  # ask to install docker
+  read -p "Do you want to install docker? (y/n) " -n 1 -r
+  echo    # move to a new line
+  DO_INSTALL_DOCKER=$REPLY
+fi
+
 apt-get update
 apt-get upgrade -y
 apt-get install -y ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find cockpit cockpit-pcp cockpit-networkmanager cockpit-packagekit
@@ -28,10 +38,8 @@ if ! grep -q "mouse on" "$TMUX_CONF" 2>/dev/null; then
   echo "set -g mouse on" >> "$TMUX_CONF"
 fi
 
-# ask to install docker
-read -p "Do you want to install docker? (y/n) " -n 1 -r
-echo    # move to a new line
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+# install docker if requested
+if [[ $DO_INSTALL_DOCKER =~ ^[Yy]$ ]]; then
     curl -fsSL https://get.docker.com -o get-docker.sh
     sh get-docker.sh
     rm get-docker.sh
