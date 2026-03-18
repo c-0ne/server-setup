@@ -45,6 +45,9 @@ if [[ $DO_INSTALL_DOCKER =~ ^[Yy]$ ]]; then
     rm get-docker.sh
 fi
 
+# add user to docker group
+usermod -aG docker "$REAL_USER"
+
 # enable cockpit service
 systemctl enable --now cockpit.socket
 
