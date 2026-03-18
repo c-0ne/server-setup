@@ -2,34 +2,37 @@
 
 ## Description
 
-https://github.com/c-0ne/server-setup/
 One script to setup a new server with essential tools and configurations.
 
-## Usage
+## Software Installed
 
-Run the following command in your terminal:
+| Package   | Description                          |
+| --------- | ------------------------------------ |
+| `ncdu`    | Disk usage analyzer                  |
+| `htop`    | Interactive process viewer           |
+| `git`     | Version control                      |
+| `curl`    | HTTP client                          |
+| `ranger`  | Terminal file manager                |
+| `nano`    | Simple text editor                   |
+| `micro`   | Modern terminal text editor          |
+| `restic`  | Backup tool                          |
+| `rsync`   | File sync / transfer                 |
+| `fresh`   | Dependency manager for shell configs |
+| `fish`    | Friendly interactive shell           |
+| `tmux`    | Terminal multiplexer                 |
+| `wget`    | File downloader                      |
+| `fd`      | Fast `find` alternative (`fd-find`)  |
+| `cockpit` | Web-based server management UI       |
 
-```bash
-# direct fetch script and run it from https://github.com/c-0ne/server-setup/setupServer.sh
-sudo bash <(curl -s https://raw.githubusercontent.com/c-0ne/server-setup/main/setupServer.sh)
-```
+### Optional
 
-## Software to Install
-
-- ncdu
-- htop
-- git
-- curl
-- ranger
-- nano
-- micro
-- restic
-- rsync
-- fresh
-- fish
-- tmux
-- wget
+| Package  | Description                               |
+| -------- | ----------------------------------------- |
+| `docker` | Container runtime (prompted during setup) |
 
 ## Configuration
 
-- set default shell to fish
+- Sets default shell to **fish** for the invoking user
+- Enables **tmux mouse support** system-wide (`/etc/tmux.conf`)
+- Enables and starts the **Cockpit** web interface (`cockpit.socket`)
+- Creates a `fd` symlink for `fd-find` (Debian/Ubuntu compatibility)
