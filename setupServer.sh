@@ -47,7 +47,7 @@ is_selected() {
 
 has_apt_package_selection() {
 	local package
-	for package in docker cockpit ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find; do
+	for package in docker cockpit ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find zoxide; do
 		is_selected "$package" && return 0
 	done
 	return 1
@@ -81,6 +81,7 @@ OPTIONS=(
 	"tmux" "Terminal multiplexer" "ON"
 	"wget" "File downloader" "ON"
 	"fd-find" "Fast and user-friendly 'find' alternative" "ON"
+	"zoxide" "Smarter directory navigation (z)" "ON"
 	"cockpit" "Web-based server management UI (includes pcp, network, packagekit)" "ON"
 	"---CONFIGS---" "---(Select configurations to apply)---" "OFF"
 	"fish_shell_change" "Set Fish as the default shell" "ON"
@@ -204,6 +205,15 @@ if is_selected fish_shell_change; then
 	else
 		echo "Skipping shell change: 'fish' is not installed or wasn't selected."
 	fi
+fi
+
+# Configure zoxide for Fish without replacing cd.
+if is_selected zoxide && command -v zoxide &>/dev/null; then
+	FISH_CONF_DIR="$(getent passwd "$REAL_USER" | cut -d: -f6)/.config/fish/conf.d"
+	install -d -o "$REAL_USER" -g "$(id -gn "$REAL_USER")" "$FISH_CONF_DIR"
+	printf '%s\n' 'zoxide init fish | source' >"$FISH_CONF_DIR/zoxide.fish"
+	chown "$REAL_USER:$(id -gn "$REAL_USER")" "$FISH_CONF_DIR/zoxide.fish"
+	SUMMARY+=("Configured zoxide for Fish (z command).")
 fi
 
 # Enable tmux mouse support
