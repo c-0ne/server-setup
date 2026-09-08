@@ -1,4 +1,7 @@
 #!/bin/bash
+set -Eeuo pipefail
+
+trap 'echo "Setup failed at line $LINENO." >&2' ERR
 
 # ==============================================================================
 #                      SETUP SCRIPT WITH TUI INTERFACE
@@ -36,6 +39,18 @@ fi
 # Define a function to check if Docker is already installed
 is_docker_installed() {
 	command -v docker &>/dev/null
+}
+
+is_selected() {
+	[[ " $SELECTIONS " == *"\"$1\""* ]]
+}
+
+has_apt_package_selection() {
+	local package
+	for package in docker cockpit ncdu htop git curl ranger nano micro restic rsync fish tmux wget fd-find; do
+		is_selected "$package" && return 0
+	done
+	return 1
 }
 
 # Set docker option state based on whether it's already installed
@@ -77,17 +92,14 @@ OPTIONS=(
 # DISPLAY TUI AND CAPTURE SELECTIONS
 # ------------------------------------------------------------------------------
 
-SELECTIONS=$(dialog --title "Server Setup Configuration" \
+if ! SELECTIONS=$(dialog --title "Server Setup Configuration" \
 	--checklist "Use Spacebar to select/deselect options. Press Enter when done." \
 	28 85 20 \
 	"${OPTIONS[@]}" \
-	2>&1 >/dev/tty)
-
-# Exit if user presses 'Cancel'
-if [ $? -ne 0 ]; then
+	2>&1 >/dev/tty); then
 	clear
 	echo "User cancelled setup. No changes were made."
-	exit
+	exit 0
 fi
 
 clear
@@ -101,14 +113,14 @@ SUMMARY=()
 # ------------------------------------------------------------------------------
 
 # --- System Update ---
-if [[ "$SELECTIONS" == *"system_update"* ]]; then
+if is_selected system_update; then
 	echo "Updating and upgrading system..."
 	apt-get update
 	apt-get upgrade -y
 	SUMMARY+=("System updated and upgraded.")
 else
 	# Still run update if any packages are to be installed, but quietly
-	if [[ "$SELECTIONS" == *"---PACKAGES---"* ]]; then
+	if has_apt_package_selection; then
 		apt-get update >/dev/null
 	fi
 fi
@@ -116,25 +128,28 @@ fi
 # --- Package Installation ---
 PACKAGES_TO_INSTALL=()
 # Special handling for cockpit
-if [[ "$SELECTIONS" == *"cockpit"* ]]; then
+if is_selected cockpit; then
     PACKAGES_TO_INSTALL+=("cockpit" "cockpit-pcp" "cockpit-network" "cockpit-packagekit")
 fi
 
 
 while IFS= read -r ITEM; do
-    # Skip separators and cockpit (already handled)
-    if [[ "$ITEM" == *"---"* ]] || [[ "$ITEM" == "cockpit" ]]; then continue; fi
+    # Skip separators and installers handled outside apt.
+    if [[ "$ITEM" == *"---"* ]] || [[ "$ITEM" == "cockpit" ]] || [[ "$ITEM" == "fresh" ]]; then continue; fi
     # Add package to the list if it was selected
-    if [[ "$SELECTIONS" == *"$ITEM"* ]]; then
+    if is_selected "$ITEM"; then
         PACKAGES_TO_INSTALL+=("$ITEM")
     fi
-done <<<"$(printf '%s\n' "${OPTIONS[@]}" | awk 'NR % 3 == 1' | sed 's/"//g')" # Extracts tags
+done < <(printf '%s\n' "${OPTIONS[@]}" | awk 'NR % 3 == 1')
 
 
 # If docker was selected but is already installed, don't try to install it
-if is_docker_installed && [[ "$SELECTIONS" == *"docker"* ]]; then
+if is_docker_installed && is_selected docker; then
 	echo "Docker is already installed, skipping installation."
-	PACKAGES_TO_INSTALL=("${PACKAGES_TO_INSTALL[@]/docker/}") # Remove docker from array
+	for i in "${!PACKAGES_TO_INSTALL[@]}"; do
+		[ "${PACKAGES_TO_INSTALL[i]}" = docker ] && unset 'PACKAGES_TO_INSTALL[i]'
+	done
+	PACKAGES_TO_INSTALL=("${PACKAGES_TO_INSTALL[@]}")
 fi
 
 # Install all selected packages at once
@@ -142,12 +157,16 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]; then
 	# Special handling for Docker installation
 	if [[ "${PACKAGES_TO_INSTALL[*]}" =~ "docker" ]]; then
 		echo "Installing Docker..."
-		curl -fsSL https://get.docker.com -o get-docker.sh
-		sh get-docker.sh
-		rm get-docker.sh
+		DOCKER_INSTALLER=$(mktemp)
+		curl -fsSL https://get.docker.com -o "$DOCKER_INSTALLER"
+		sh "$DOCKER_INSTALLER"
+		rm -f "$DOCKER_INSTALLER"
 		SUMMARY+=("Installed Docker.")
 		# Remove docker from the list to not pass it to apt
-		PACKAGES_TO_INSTALL=("${PACKAGES_TO_INSTALL[@]/docker/}")
+		for i in "${!PACKAGES_TO_INSTALL[@]}"; do
+			[ "${PACKAGES_TO_INSTALL[i]}" = docker ] && unset 'PACKAGES_TO_INSTALL[i]'
+		done
+		PACKAGES_TO_INSTALL=("${PACKAGES_TO_INSTALL[@]}")
 	fi
 
 	if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]; then
@@ -161,25 +180,34 @@ fi
 # --- Configurations ---
 
 # Install fresh
-if [[ "$SELECTIONS" == *"fresh"* ]]; then
-	echo "Installing fresh..."
-	curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
-    SUMMARY+=("Installed 'fresh' text editor.")
+if is_selected fresh; then
+	if command -v fresh &>/dev/null; then
+		echo "Fresh is already installed, skipping installation."
+	else
+		echo "Installing fresh..."
+		curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
+        SUMMARY+=("Installed 'fresh' text editor.")
+	fi
 fi
 
 # Change default shell to fish
-if [[ "$SELECTIONS" == *"fish_shell_change"* ]]; then
+if is_selected fish_shell_change; then
 	if command -v fish &>/dev/null; then
-		echo "Changing default shell to fish for user '$REAL_USER'..."
-		chsh -s "$(which fish)" "$REAL_USER"
-        SUMMARY+=("Set Fish as default shell for '$REAL_USER'.")
+		FISH_PATH=$(command -v fish)
+		if [ "$(getent passwd "$REAL_USER" | cut -d: -f7)" = "$FISH_PATH" ]; then
+			echo "Fish is already the default shell for '$REAL_USER'."
+		else
+			echo "Changing default shell to fish for user '$REAL_USER'..."
+			chsh -s "$FISH_PATH" "$REAL_USER"
+            SUMMARY+=("Set Fish as default shell for '$REAL_USER'.")
+		fi
 	else
 		echo "Skipping shell change: 'fish' is not installed or wasn't selected."
 	fi
 fi
 
 # Enable tmux mouse support
-if [[ "$SELECTIONS" == *"tmux_mouse"* ]]; then
+if is_selected tmux_mouse; then
 	if command -v tmux &>/dev/null; then
 		echo "Enabling mouse support in tmux..."
 		TMUX_CONF="/etc/tmux.conf"
@@ -193,30 +221,36 @@ if [[ "$SELECTIONS" == *"tmux_mouse"* ]]; then
 fi
 
 # Create fd symlink if fd-find was installed
-if [[ "$SELECTIONS" == *"fd-find"* ]]; then
+if is_selected fd-find; then
     if command -v fdfind &>/dev/null; then
         echo "Creating 'fd' symlink for 'fdfind'..."
-        if [ ! -L /usr/local/bin/fd ]; then
-            ln -s "$(which fdfind)" /usr/local/bin/fd
+		if [ ! -e /usr/local/bin/fd ] && [ ! -L /usr/local/bin/fd ]; then
+			ln -s "$(command -v fdfind)" /usr/local/bin/fd
             SUMMARY+=("Created 'fd' symlink for 'fdfind'.")
-        fi
+		elif [ "$(readlink -f /usr/local/bin/fd)" != "$(readlink -f "$(command -v fdfind)")" ]; then
+			echo "Skipping fd symlink: /usr/local/bin/fd already points elsewhere." >&2
+		fi
     fi
 fi
 
 
 # Add user to docker group
-if [[ "$SELECTIONS" == *"docker_usermod"* ]]; then
+if is_selected docker_usermod; then
 	if command -v docker &>/dev/null; then
-		echo "Adding user '$REAL_USER' to the docker group..."
-		usermod -aG docker "$REAL_USER"
-        SUMMARY+=("Added user '$REAL_USER' to the 'docker' group.")
+		if id -nG "$REAL_USER" | tr ' ' '\n' | grep -qx docker; then
+			echo "User '$REAL_USER' is already in the docker group."
+		else
+			echo "Adding user '$REAL_USER' to the docker group..."
+			usermod -aG docker "$REAL_USER"
+            SUMMARY+=("Added user '$REAL_USER' to the 'docker' group.")
+		fi
 	else
 		echo "Skipping docker group modification: 'docker' is not installed or wasn't selected."
 	fi
 fi
 
 # Enable cockpit service if cockpit was installed
-if [[ "$SELECTIONS" == *"cockpit"* ]]; then
+if is_selected cockpit; then
     if command -v cockpit-ws &>/dev/null; then
         echo "Enabling and starting cockpit.socket..."
         systemctl enable --now cockpit.socket
