@@ -75,6 +75,7 @@ OPTIONS=(
 	"nano" "Simple text editor" "ON"
 	"micro" "Modern terminal text editor" "ON"
 	"fresh" "Another modern Text-Editor" "ON"
+	"superfile" "Terminal file manager" "ON"
 	"restic" "Fast, secure, efficient backup tool" "ON"
 	"rsync" "File synchronization and transfer" "ON"
 	"fish" "Friendly interactive shell" "ON"
@@ -136,7 +137,7 @@ fi
 
 while IFS= read -r ITEM; do
     # Skip separators and installers handled outside apt.
-    if [[ "$ITEM" == *"---"* ]] || [[ "$ITEM" == "cockpit" ]] || [[ "$ITEM" == "fresh" ]]; then continue; fi
+    if [[ "$ITEM" == *"---"* ]] || [[ "$ITEM" == "cockpit" ]] || [[ "$ITEM" == "fresh" ]] || [[ "$ITEM" == "superfile" ]]; then continue; fi
     # Add package to the list if it was selected
     if is_selected "$ITEM"; then
         PACKAGES_TO_INSTALL+=("$ITEM")
@@ -188,6 +189,17 @@ if is_selected fresh; then
 		echo "Installing fresh..."
 		curl -fsSL https://raw.githubusercontent.com/sinelaw/fresh/refs/heads/master/scripts/install.sh | sh
         SUMMARY+=("Installed 'fresh' text editor.")
+	fi
+fi
+
+# Install Superfile
+if is_selected superfile; then
+	if command -v spf &>/dev/null; then
+		echo "Superfile is already installed, skipping installation."
+	else
+		echo "Installing Superfile..."
+		bash -c "$(curl -sLo- https://superfile.dev/install.sh)"
+		SUMMARY+=("Installed Superfile.")
 	fi
 fi
 
