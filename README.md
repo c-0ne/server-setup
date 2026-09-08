@@ -22,6 +22,7 @@ One script to setup a new server with essential tools and configurations.
 | `tmux`    | Terminal multiplexer                                                                                           |
 | `wget`    | File downloader                                                                                                |
 | `fd`      | Fast `find` alternative (`fd-find`)                                                                            |
+| `zoxide`  | Smarter directory navigation via `z`                                                                           |
 | `cockpit` | Web-based server management UI. Includes `pcp`, `networkmanager`, and `packagekit` for extended functionality. |
 
 ### Optional
@@ -38,4 +39,5 @@ One script to setup a new server with essential tools and configurations.
 - **Tmux**: Enables mouse support system-wide by adding `set -g mouse on` to `/etc/tmux.conf`.
 - **Cockpit**: Enables and starts the `cockpit.socket` service so the web interface is available after boot.
 - **FD Symlink**: Creates a `fd` symlink for `fd-find` for compatibility with tools expecting `fd` (common on Debian/Ubuntu).
+- **Zoxide**: Configures Fish with the `z` command while leaving `cd` unchanged.
 - **Cleanup**: Removes unnecessary packages and cleans the local repository of retrieved package files.
