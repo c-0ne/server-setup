@@ -18,6 +18,7 @@ One script to setup a new server with essential tools and configurations.
 | `restic`  | Backup tool                                                                                                    |
 | `rsync`   | File sync / transfer                                                                                           |
 | `fresh`   | Dependency manager for shell configs                                                                           |
+| `superfile` | Terminal file manager                                                                                        |
 | `fish`    | Friendly interactive shell                                                                                     |
 | `tmux`    | Terminal multiplexer                                                                                           |
 | `wget`    | File downloader                                                                                                |
